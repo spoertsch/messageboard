@@ -21,7 +21,7 @@ object MessageController extends Controller {
           case Some(message) => {
             render {
               case Accepts.Json() => {
-                Ok(Json.toJson(message)).as(JSON).withHeaders("Access-Control-Allow-Origin" -> "*")
+                Ok(Json.toJson(message)).as(JSON)
               }
               case _ => NotAcceptable
             }
@@ -36,7 +36,7 @@ object MessageController extends Controller {
       Message.findAll(Some(userId)).map { messages =>
         render {
           case Accepts.Json() => {
-            Ok(Json.toJson(messages)).as(JSON).withHeaders("Access-Control-Allow-Origin" -> "*")
+            Ok(Json.toJson(messages)).as(JSON)
           }
           case _ => NotAcceptable
         }
@@ -58,7 +58,7 @@ object MessageController extends Controller {
             Logger.debug(lastError.toString())
             //            Ok(Json.toJson(newMessage)).as(JSON)
             Created.withHeaders(
-              "Location" -> routes.MessageController.findById(newMessage.id.get).absoluteURL()).withHeaders("Access-Control-Allow-Origin" -> "*")
+              "Location" -> routes.MessageController.findById(newMessage.id.get).absoluteURL())
           } else {
             InternalServerError(lastError.message)
           }
@@ -90,7 +90,7 @@ object MessageController extends Controller {
       Message.delete(messageId).map { lastError =>
         if (lastError.ok) {
           Logger.debug(lastError.toString())
-          Ok.withHeaders("Access-Control-Allow-Origin" -> "*")
+          Ok
         } else {
           InternalServerError(lastError.message)
         }
