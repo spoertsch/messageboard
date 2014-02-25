@@ -12,28 +12,32 @@ import play.api.libs.json.__
 import play.api.libs.json.Json
 import play.api.libs.functional.syntax.functionalCanBuildApplicative
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import reactivemongo.bson.BSONObjectID
+import play.api.libs.json.JsObject
+import play.modules.reactivemongo.json.BSONFormats._
+import reactivemongo.bson.BSONDateTime
+import java.util.Date
 
 object MessageController extends Controller {
   def findById(messageId: String) = Action.async {
     implicit req =>
-      Message.findById(messageId).map(message =>
-        message match {
-          case Some(message) => {
-            render {
-              case Accepts.Json() => {
-                Ok(Json.toJson(message)).as(JSON)
-              }
-              case _ => NotAcceptable
+      Message.findById(messageId).map {
+        case Some(message) => {
+          render {
+            case Accepts.Json() => {
+              Logger.debug(message.toString);
+              Ok(Json.toJson(message)).as(JSON)
             }
+            case _ => NotAcceptable
           }
-          case _ => NotFound
-        })
+        }
+        case _ => NotFound
+      }
   }
 
   def findAllByRecipient(userId: String) = Action.async {
     implicit req =>
-      Logger.debug(req.headers.toString)
-      Message.findAll(Some(userId)).map { messages =>
+      Message.findByRecipient(userId).map { messages =>
         render {
           case Accepts.Json() => {
             Ok(Json.toJson(messages)).as(JSON)
@@ -43,24 +47,20 @@ object MessageController extends Controller {
       }
   }
 
-  implicit val rds = (
-    (__ \ 'title).read[String] and
-    (__ \ 'sender).read[String] and
-    (__ \ 'recipient).read[String] and
-    (__ \ 'content).read[Option[String]]) tupled
-
   def save() = Action.async(parse.json) { implicit request =>
-    request.body.validate[(String, String, String, Option[String])].map {
-      case (title, sender, recipient, content) => {
-        val newMessage = Message(title, sender, recipient, content)
-        Message.save(newMessage).map { lastError =>
+    request.body.validate[Message].map {
+      case (message) => {
+        val id = BSONObjectID.generate
+        val dateTime = BSONDateTime((new Date).getTime)
+        val json = request.body.as[JsObject] ++ Json.obj("_id" -> id,
+          "created" -> dateTime)
+        Message.save(json).map { lastError =>
           if (lastError.ok) {
             Logger.debug(lastError.toString())
-            //            Ok(Json.toJson(newMessage)).as(JSON)
             Created.withHeaders(
-              "Location" -> routes.MessageController.findById(newMessage.id.get).absoluteURL())
+              "Location" -> routes.MessageController.findById(id.stringify).absoluteURL())
           } else {
-            InternalServerError(lastError.message)
+            InternalServerError(s"Mongo LastError: $lastError")
           }
         }
       }
@@ -72,12 +72,19 @@ object MessageController extends Controller {
   def update(messageId: String) = Action.async(parse.json) { implicit request =>
     request.body.validate[Message].map {
       case (message) => {
-        Message.update(message).map { lastError =>
+        Message.update(messageId, message).flatMap { lastError =>
           if (lastError.ok) {
             Logger.debug(lastError.toString())
-            Ok(Json.toJson(message)).as(JSON)
+            Message.findById(messageId).map { messages =>
+              render {
+                case Accepts.Json() => {
+                  Ok(Json.toJson(messages)).as(JSON)
+                }
+                case _ => NotAcceptable
+              }
+            }
           } else {
-            InternalServerError(lastError.message)
+            Future.successful(InternalServerError(lastError.message))
           }
         }
       }
@@ -85,6 +92,7 @@ object MessageController extends Controller {
       e => Future.successful(BadRequest("Detected error:" + JsError.toFlatJson(e)))
     }
   }
+
   def delete(messageId: String) = Action.async {
     implicit req =>
       Message.delete(messageId).map { lastError =>

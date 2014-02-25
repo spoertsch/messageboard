@@ -1,24 +1,25 @@
 package model
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import org.joda.time.LocalDateTime
 import org.joda.time.format.ISODateTimeFormat
-import reactivemongo.bson.BSONObjectID
+import play.api.Play.current
+import play.api.libs.functional.syntax.functionalCanBuildApplicative
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.json.JsString
+import play.api.libs.json.Json
+import play.api.libs.json.Json.toJsFieldJsValueWrapper
 import play.api.libs.json.Reads
 import play.api.libs.json.Writes
-import reactivemongo.bson.BSONDocument
-import reactivemongo.bson.BSONDateTime
-import reactivemongo.bson.BSONDocumentReader
-import reactivemongo.bson.BSONDocumentWriter
-import play.api.libs.json.Json
-import play.api.libs.json.JsString
-import reactivemongo.bson.BSONString
-import scala.concurrent.ExecutionContext.Implicits.global
 import play.modules.reactivemongo.ReactiveMongoPlugin
-import play.api.Play.current
-import reactivemongo.api.collections.default.BSONCollection
-import scala.concurrent.Future
-import reactivemongo.api.QueryOpts
-import play.modules.reactivemongo.MongoController
+import play.modules.reactivemongo.json.collection.JSONCollection
+import play.modules.reactivemongo.json.BSONFormats._
+import reactivemongo.bson.BSONObjectID
+import play.api.libs.json.JsValue
+import play.api.libs.json.JsObject
+import reactivemongo.api.Cursor
+import reactivemongo.bson.BSONDateTime
 
 case class Message(
   val title: String,
@@ -26,91 +27,57 @@ case class Message(
   val recipient: String,
   val content: Option[String],
   val status: String = "new",
-  val createdOn: Option[LocalDateTime] = Some(new LocalDateTime()),
-  val id: Option[String] = Some(BSONObjectID.generate.stringify)) {
-
-  /**
-   * Converts createdAt to printable date time.
-   */
-  def createdAtISO(): String = ISODateTimeFormat.dateTimeNoMillis().print(createdOn.get)
-
+  val createdOn: Option[BSONDateTime] = None,
+  val id: Option[BSONObjectID] = None) {
 }
 
 object Message {
-  implicit val readsJodaLocalDateTime = Reads[LocalDateTime](js =>
-    js.validate[String].map[LocalDateTime](dtString =>
-      LocalDateTime.parse(dtString, ISODateTimeFormat.dateTimeNoMillis())))
 
-  implicit val writesJodaLocalDateTime = Writes[LocalDateTime](dt =>
-    JsString(ISODateTimeFormat.dateTimeNoMillis().print(dt)))
-
-  implicit val messageWrites = Json.writes[Message]
-  implicit val messageReads = Json.reads[Message]
-
-  // Does the mapping BSON <-> Scala object
-  implicit object MessageBSONReader extends BSONDocumentReader[Message] {
-    def read(doc: BSONDocument): Message = Message(
-      doc.getAs[String]("title").get,
-      doc.getAs[String]("sender").get,
-      doc.getAs[String]("recipient").get,
-      doc.getAs[String]("content"),
-      doc.getAs[String]("status").get,
-      doc.getAs[BSONDateTime]("created_on").map(bdt => new LocalDateTime(bdt.value)),
-      doc.getAs[BSONObjectID]("_id").map(_.stringify))
-  }
-
-  implicit object MessageBSONWriter extends BSONDocumentWriter[Message] {
-    def write(message: Message) = {
-      BSONDocument(
-        "_id" -> BSONObjectID(message.id.get),
-        "title" -> message.title,
-        "sender" -> message.sender,
-        "recipient" -> message.recipient,
-        "content" -> message.content.map(BSONString(_)),
-        "status" -> message.status,
-        "created_on" -> BSONDateTime(message.createdOn.get.toDateTime().getMillis()))
-    }
-  }
+  import play.modules.reactivemongo.json.BSONFormats._
+  implicit val messageFormat = Json.format[Message]
 
   def db = ReactiveMongoPlugin.db
-  def collection = db.collection[BSONCollection]("Message")
+  def collection: JSONCollection = db.collection[JSONCollection]("Message")
 
-  def save(message: Message) = {
-    collection.insert(message)
+  def save(message: JsValue) = {
+    collection.insert[JsValue](message)
   }
 
-  def findById(id: String): Future[Option[Message]] = {
-    collection.find(BSONDocument("_id" -> BSONObjectID(id))).one[Message]
+  //  def save(message: Message) = {
+  //    collection.insert(message)
+  //  }
+
+  def findById(id: String): Future[Option[JsValue]] = {
+    val query = Json.obj("_id" -> Json.obj("$oid" -> id))
+    collection.find(query).one[JsValue]
   }
 
-  def findAll(recipient: Option[String]) = {
-    val query = recipient match {
-      case Some(recipient) => BSONDocument("recipient" -> recipient)
-      case _ => BSONDocument()
-    }
-    collection.find(query).sort(BSONDocument("created_on" -> -1)).options(QueryOpts().batchSize(10)).cursor[Message].collect[List]()
+  def findByRecipient(recipient: String): Future[List[JsObject]] = {
+    val cursor: Cursor[JsObject] = collection
+      .find(Json.obj("recipient" -> recipient))
+      .sort(Json.obj("created_on" -> -1))
+      .cursor[JsObject]
+    cursor.collect[List]()
   }
 
-  def update(message: Message) = {
-    val selector = BSONDocument("_id" -> BSONObjectID(message.id.get))
-    		
-    val modifier = BSONDocument(
-      "$set" -> BSONDocument(
+  def update(messageId: String, message: Message) = {
+    val selector = Json.obj("_id" -> Json.obj("$oid" -> messageId))
+
+    val modifier = Json.obj(
+      "$set" -> Json.obj(
         "title" -> message.title,
         "content" -> message.content,
-        "status" -> message.status
-      )
-    )
-    
+        "status" -> message.status))
+
     collection.update(selector, modifier)
   }
-  
-  def delete(messageId: String) = {
-    val selector = BSONDocument("_id" -> BSONObjectID(messageId))
 
-    val modifier = BSONDocument(
-      "$set" -> BSONDocument(
-        "status" -> BSONString("deleted")))
+  def delete(messageId: String) = {
+    val selector = Json.obj("_id" -> Json.obj("$oid" -> messageId))
+
+    val modifier = Json.obj(
+      "$set" -> Json.obj(
+        "status" -> "deleted"))
 
     collection.update(selector, modifier)
   }
