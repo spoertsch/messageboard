@@ -50,43 +50,40 @@ object MessageController extends Controller {
     (__ \ 'content).read[Option[String]] and
     (__ \ 'status).read[String]) tupled
 
-  def save() = Action(parse.json) { implicit request =>
+  def save() = Action.async(parse.json) { implicit request =>
     request.body.validate[(String, String, String, Option[String], String)].map {
       case (title, sender, recipient, content, status) => {
         val newMessage = Message(title, sender, recipient, content, status)
-        Message.save(newMessage)
-        //        Message.save(newMessage).map { lastError =>
-        //          if (lastError.ok) {
-        //            Logger.debug(lastError.toString())
-        //            Ok(Json.toJson(message)).as(JSON)
-        //          } else {
-        //            InternalServerError(lastError.message)
-        //          }
-        //        }
-        Created.withHeaders(
-          "Location" -> routes.MessageController.findById(newMessage.id.get).absoluteURL()).withHeaders("Access-Control-Allow-Origin" -> "*")
+        Message.save(newMessage).map { lastError =>
+          if (lastError.ok) {
+            Logger.debug(lastError.toString())
+            //            Ok(Json.toJson(newMessage)).as(JSON)
+            Created.withHeaders(
+              "Location" -> routes.MessageController.findById(newMessage.id.get).absoluteURL()).withHeaders("Access-Control-Allow-Origin" -> "*")
+          } else {
+            InternalServerError(lastError.message)
+          }
+        }
       }
     }.recoverTotal {
-      e => BadRequest("Detected error:" + JsError.toFlatJson(e))
+      e => Future.successful(BadRequest("Detected error:" + JsError.toFlatJson(e)))
     }
   }
 
-  def update(messageId: String) = Action(parse.json) { implicit request =>
+  def update(messageId: String) = Action.async(parse.json) { implicit request =>
     request.body.validate[Message].map {
       case (message) => {
-        Message.update(message)
-        Ok(Json.toJson(message)).as(JSON).withHeaders("Access-Control-Allow-Origin" -> "*")
-        //        Message.update(message).map { lastError =>
-        //          if (lastError.ok) {
-        //            Logger.debug(lastError.toString())
-        //            Ok(Json.toJson(message)).as(JSON)
-        //          } else {
-        //            InternalServerError(lastError.message)
-        //          }
-        //        }
+        Message.update(message).map { lastError =>
+          if (lastError.ok) {
+            Logger.debug(lastError.toString())
+            Ok(Json.toJson(message)).as(JSON)
+          } else {
+            InternalServerError(lastError.message)
+          }
+        }
       }
     }.recoverTotal {
-      e => BadRequest
+      e => Future.successful(BadRequest("Detected error:" + JsError.toFlatJson(e)))
     }
   }
   def delete(messageId: String) = Action.async {

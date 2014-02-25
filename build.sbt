@@ -6,7 +6,7 @@ libraryDependencies ++= Seq(
 	filters,
   "org.webjars" %% "webjars-play" % "2.2.0", 
   "org.webjars" % "bootstrap" % "3.0.2",
-  "org.reactivemongo" %% "play2-reactivemongo" % "0.10.0"
+  "org.reactivemongo" %% "play2-reactivemongo" % "0.10.2"
 )
 
 
