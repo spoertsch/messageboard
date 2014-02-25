@@ -18,6 +18,7 @@ import play.api.Play.current
 import reactivemongo.api.collections.default.BSONCollection
 import scala.concurrent.Future
 import reactivemongo.api.QueryOpts
+import play.modules.reactivemongo.MongoController
 
 case class Message(
   val title: String,
