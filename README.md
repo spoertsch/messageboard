@@ -1,6 +1,6 @@
 MessageBoard
 =====================================
-This is a project should demonstrate the creation of a REST API. The API is consumed by a AngularJS frontend created in another project.
+This is a project should demonstrate the creation of a Json REST API with the Play Framework. The API is consumed by a AngularJS frontend created in another project.
 
 In order to run the application you need to have a MongoDB up and running.
 
