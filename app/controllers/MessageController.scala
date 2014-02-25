@@ -75,13 +75,16 @@ object MessageController extends Controller {
         Message.update(messageId, message).flatMap { lastError =>
           if (lastError.ok) {
             Logger.debug(lastError.toString())
-            Message.findById(messageId).map { messages =>
-              render {
-                case Accepts.Json() => {
-                  Ok(Json.toJson(messages)).as(JSON)
+            Message.findById(messageId).map {
+              case Some(foundMessage) => {
+                render {
+                  case Accepts.Json() => {
+                    Ok(Json.toJson(foundMessage)).as(JSON)
+                  }
+                  case _ => NotAcceptable
                 }
-                case _ => NotAcceptable
               }
+              case _ => NotFound
             }
           } else {
             Future.successful(InternalServerError(lastError.message))
