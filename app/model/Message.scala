@@ -24,7 +24,7 @@ case class Message(
   val sender: String,
   val recipient: String,
   val content: Option[String],
-  val status: String,
+  val status: String = "new",
   val createdOn: Option[LocalDateTime] = Some(new LocalDateTime()),
   val id: Option[String] = Some(BSONObjectID.generate.stringify)) {
 

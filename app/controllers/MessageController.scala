@@ -47,13 +47,12 @@ object MessageController extends Controller {
     (__ \ 'title).read[String] and
     (__ \ 'sender).read[String] and
     (__ \ 'recipient).read[String] and
-    (__ \ 'content).read[Option[String]] and
-    (__ \ 'status).read[String]) tupled
+    (__ \ 'content).read[Option[String]]) tupled
 
   def save() = Action.async(parse.json) { implicit request =>
-    request.body.validate[(String, String, String, Option[String], String)].map {
-      case (title, sender, recipient, content, status) => {
-        val newMessage = Message(title, sender, recipient, content, status)
+    request.body.validate[(String, String, String, Option[String])].map {
+      case (title, sender, recipient, content) => {
+        val newMessage = Message(title, sender, recipient, content)
         Message.save(newMessage).map { lastError =>
           if (lastError.ok) {
             Logger.debug(lastError.toString())
