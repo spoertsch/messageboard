@@ -6,27 +6,27 @@ In order to run the application you need to have a MongoDB up and running.
 
 ### API
 
-##### Get message by id
+##### GET message by id: /message
 ```bash
 curl --header "Accept: application/json" --request GET http://localhost:9000/message/<messageId>
 ```
 
-##### Get all messages by an user
+##### GET all messages by an user: /message/user/{user}
 ```bash
 curl --header "Accept: application/json" --request GET http://localhost:9000/message/user/<user> -v
 ```
 
-##### Create new message
+##### POST new message: /message
 ```bash
 curl --header "Content-type: application/json" --request POST --data '{ "title": "Title", "sender": "sender", "recipient": "recipient", "content":"k"}' http://localhost:9000/message -v
 ```
 
-##### Update message
+##### PUT (update) message: /message/{messageId}
 ```bash
 curl --header "Content-type: application/json" --request PUT --data '{"title":"Updated Title","sender":"sender","recipient":"recipient","content":"Content","status":"new"}' http://localhost:9000/message/<messageId> -v
 ```
 
-##### Delete message by id (only sets status to deleted)
+##### DELETE message by id (only sets status to deleted): /message/{messageId}
 ```bash
 curl --request DELETE http://localhost:9000/message/<messageId>
 ```
