@@ -1,7 +1,11 @@
 @(message: String)
 
+@import play.api.Play
+
 @main("Welcome to Play") {
 
-    @play20.welcome(message)
+    @for(r <- Play.current.routes) {
+    	@r.documentation
+    }
 
 }

@@ -9,13 +9,13 @@ OPTIONS   /*path                  controllers.Application.options(path)
 GET       /                       controllers.Application.index
 
 # Message
-POST      /message                controllers.MessageController.save
+POST      /messages                controllers.MessageController.save
 
-GET       /message/:messageId     controllers.MessageController.findById(messageId: String)
-PUT       /message/:messageId     controllers.MessageController.update(messageId: String)
-DELETE    /message/:messageId     controllers.MessageController.delete(messageId: String)
+GET       /messages/:messageId     controllers.MessageController.findById(messageId: String)
+PUT       /messages/:messageId     controllers.MessageController.update(messageId: String)
+DELETE    /messages/:messageId     controllers.MessageController.delete(messageId: String)
 
-GET       /message/user/:userId   controllers.MessageController.findAllByRecipient(userId: String)
+GET       /messages/user/:userId   controllers.MessageController.findAllByRecipient(userId: String)
 
 
 # Map static resources from the /public folder to the /assets URL path

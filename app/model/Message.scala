@@ -60,14 +60,14 @@ object Message {
     cursor.collect[List]()
   }
 
-  def update(messageId: String, message: Message) = {
+  def update(messageId: String, message: JsObject) = {
     val selector = Json.obj("_id" -> Json.obj("$oid" -> messageId))
 
     val modifier = Json.obj(
       "$set" -> Json.obj(
-        "title" -> message.title,
-        "content" -> message.content,
-        "status" -> message.status))
+        "title" -> (message \ "title"),
+        "content" -> (message \ "content"),
+        "status" -> (message \ "status")))
 
     collection.update(selector, modifier)
   }
