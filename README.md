@@ -6,29 +6,29 @@ In order to run the application you need to have a MongoDB up and running.
 
 ### API
 
-##### GET message by id: /message
+##### GET message by id: /messages
 ```bash
-curl --header "Accept: application/json" --request GET http://localhost:9000/message/<messageId>
+curl --header "Accept: application/json" --request GET http://localhost:9000/messages/<messageId>
 ```
 
-##### GET all messages by an user: /message/user/{user}
+##### GET all messages by an user: /messages/user/{user}
 ```bash
-curl --header "Accept: application/json" --request GET http://localhost:9000/message/user/<user> -v
+curl --header "Accept: application/json" --request GET http://localhost:9000/messages/user/<user> -v
 ```
 
-##### POST new message: /message
+##### POST new message: /messages
 ```bash
-curl --header "Content-type: application/json" --request POST --data '{ "title": "Title", "sender": "sender", "recipient": "recipient", "content":"k"}' http://localhost:9000/message -v
+curl --header "Content-type: application/json" --request POST --data '{ "title": "Title", "sender": "sender", "recipient": "recipient", "content":"k"}' http://localhost:9000/messages -v
 ```
 
-##### PUT (update) message: /message/{messageId}
+##### PUT (update) message: /messages/{messageId}
 ```bash
-curl --header "Content-type: application/json" --request PUT --data '{"title":"Updated Title","sender":"sender","recipient":"recipient","content":"Content","status":"new"}' http://localhost:9000/message/<messageId> -v
+curl --header "Content-type: application/json" --request PUT --data '{"title":"Updated Title","sender":"sender","recipient":"recipient","content":"Content","status":"new"}' http://localhost:9000/messages/<messageId> -v
 ```
 
-##### DELETE message by id (only sets status to deleted): /message/{messageId}
+##### DELETE message by id (only sets status to deleted): /messages/{messageId}
 ```bash
-curl --request DELETE http://localhost:9000/message/<messageId>
+curl --request DELETE http://localhost:9000/messages/<messageId>
 ```
 
 ### Resources
